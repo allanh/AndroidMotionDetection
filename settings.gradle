@@ -1,0 +1,2 @@
+include ':openCVLibrary331dev', ':galileocv'
+include ':openCVSamplefacedetection'
