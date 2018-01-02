@@ -1,6 +1,6 @@
-/Users/allanshih/Projects/face-detection1/galileocv/src/main/obj/local/armeabi-v7a/objs/motion_detection/motion_detection_jni.o: \
-  /Users/allanshih/Projects/face-detection1/galileocv/src/main/jni/motion_detection_jni.cpp \
-  /Users/allanshih/Projects/face-detection1/galileocv/src/main/jni/motion_detection_jni.h \
+/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/obj/local/armeabi-v7a/objs/motion_detection/motion_detection_jni.o: \
+  /Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/motion_detection_jni.cpp \
+  /Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/motion_detection_jni.h \
   /Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv2/imgproc.hpp \
   /Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv2/core.hpp \
   /Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv2/core/cvdef.h \
@@ -157,7 +157,7 @@
   /Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv2/core/ocl.hpp \
   /Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv2/objdetect/objdetect.hpp
 
-/Users/allanshih/Projects/face-detection1/galileocv/src/main/jni/motion_detection_jni.h:
+/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/motion_detection_jni.h:
 
 /Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv2/imgproc.hpp:
 

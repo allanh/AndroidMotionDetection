@@ -155,7 +155,7 @@ extern "C" {
         segmask.release();
     }
 
-    void hogDetect(Mat& frame, Mat& output) {
+    void hogDetect(Mat& frame, Mat& output) {//        }
 //        if (frame.cols > 800) {
             resize(frame, frame, Size(), 0.5, 0.5);
 //        }
