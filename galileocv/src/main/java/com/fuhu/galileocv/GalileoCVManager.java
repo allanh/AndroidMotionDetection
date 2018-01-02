@@ -52,6 +52,8 @@ public class GalileoCVManager implements IVisionManager, CvCameraViewListener2 {
 
     private BaseLoaderCallback      mLoaderCallback;
 
+    private long                    mStartedTimeMs;
+
     public GalileoCVManager(Context context, CameraBridgeViewBase openCvCameraView) {
         this.mContext = context;
         this.mOpenCvCameraView = openCvCameraView;
@@ -159,6 +161,7 @@ public class GalileoCVManager implements IVisionManager, CvCameraViewListener2 {
         mGray = inputFrame.gray();
 
         if (isDetecting) {
+            mStartedTimeMs = System.currentTimeMillis();
 //        mMotionDetector.findFeatures(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
 //        mMotionDetector.objectTracking(mRgba.getNativeObjAddr(), motion.getNativeObjAddr(),
 //                "BOOSTING", index++);
@@ -192,7 +195,9 @@ public class GalileoCVManager implements IVisionManager, CvCameraViewListener2 {
 //            Imgproc.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
 //
 //        motion.release();
+            Log.d(TAG, " completed: delay= " + (System.currentTimeMillis() - mStartedTimeMs) + "ms");
         }
+
         return mRgba;
     }
 
