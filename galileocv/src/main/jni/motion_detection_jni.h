@@ -8,9 +8,12 @@
 extern "C" {
 #endif
 
-JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_findFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
+JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_findFeatures(
+        JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
 
-JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_detect(JNIEnv*, jobject, jlong addrRgba, jlong addrMotion);
+JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_detect(
+        JNIEnv* jenv, jobject, jlong addrRgba, jint sourceWidth, jint sourceHeight,
+        jint roiX, jint roiY, jint roiWidth, jint roiHeight);
 
 JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_objectTracking(
         JNIEnv* jenv, jobject, jlong addrRgba, jlong addrMotion, jstring typeString, jint index);

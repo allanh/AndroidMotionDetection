@@ -8,7 +8,8 @@ public class MotionDetector {
 
     public static native void findFeatures(long matAddrGr, long matAddrRgba);
 
-    public static native void detect(long matAddrRgba ,long matAddrMotion);
+    public static native void detect(long matAddrRgba, int sourceWidth, int sourceHeight,
+                                    int roiX, int roiY, int roiWidth, int roiHeight); //, Rect roiRect);
 
     public static native void objectTracking(long matAddrRgba ,long matAddrMotion, String typeString, int index);
 

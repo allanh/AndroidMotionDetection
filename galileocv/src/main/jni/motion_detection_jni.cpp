@@ -205,28 +205,74 @@ extern "C" {
         resize(frame, frame, Size(), 2, 2);
     }
 
+    Rect merge(Rect firstRect, Rect secondRect) {
+        int left = min(firstRect.x, secondRect.x);
+        int top = min(firstRect.y, secondRect.y);
+        int right = max(firstRect.x + firstRect.width, secondRect.x + secondRect.width);
+        int bottom = max(firstRect.y + firstRect.height, secondRect.y + secondRect.height);
+        return Rect(left, top, right - left, bottom - top);
+    }
+
+    vector <Rect> mergedRects(vector<Rect> rects) {
+        vector <Rect> mergedRects = rects;
+        bool foundIntersection = false;
+
+        do {
+            foundIntersection = false;
+            for (int i = 0; i < mergedRects.size(); i++) {
+                Rect current = mergedRects[i];
+                for (int j = i + 1; j < mergedRects.size(); j++) {
+                    if ((current & mergedRects[j]).area() > 0) {
+                        foundIntersection = true;
+                        current = current | mergedRects[j];
+                        mergedRects.erase(mergedRects.begin() + j);
+                    }
+                }
+                mergedRects[i] = current;
+            }
+        } while (foundIntersection);
+
+        return mergedRects;
+    }
+
+
+    // Background segmentation
+
     bool update_bg_model = true;
     bool smoothMask = true;
+    int maxArea;
 
-    Mat img, fgmask, roi_img;
+    Mat img, fgmask;
     Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
+    //Rect roi_rect(0, 0, 300, 300); // x,y,w,h
 
-    void bgDetect(Mat& frame, Mat& output) {
+    void bgDetect(Mat& frame, Size sourceSize, Rect originRoiRect) {
         int rows = frame.rows;
         int cols = frame.cols;
+        double newFrameHeight = 640 * frame.rows / frame.cols;
+        double sourceWidthScalar = 640 / (double)sourceSize.width;
+        double sourceHeightScalar = newFrameHeight / sourceSize.height;
+        LOGD("newFrameHeight: %lf, widthScalar: %lf, heightScalar: %lf\n",
+             newFrameHeight, sourceWidthScalar, sourceHeightScalar);
+
+        Rect roi_rect(originRoiRect.x * sourceWidthScalar,
+                      originRoiRect.y * sourceHeightScalar,
+                      originRoiRect.width * sourceWidthScalar,
+                      originRoiRect.height * sourceHeightScalar);
+
+        LOGD("JNI resized rect x: %d y: %d width: %d height: %d)\n",
+             roi_rect.x, roi_rect.y, roi_rect.width, roi_rect.height);
         LOGI("frame width: %d height: %d", cols, rows);
 
-        resize(frame, img, Size(640, 640 * frame.rows / frame.cols), INTER_LINEAR);
-        LOGD("img width: %d height: %d", img.cols, img.rows);
-        Rect roi_rect(0, 0, img.cols * 0.5, img.rows); // x,y,w,h
-
-        roi_img = img(roi_rect);
+        resize(frame, img, Size(640, newFrameHeight), INTER_LINEAR);
+        LOGD("resized img width: %d height: %d", img.cols, img.rows);
+        maxArea = img.rows * img.cols * 9 / 10;
 
 //        if (fgimg.empty())
-//            fgimg.create(roi_img.size(), roi_img.type());
+//            fgimg.create(img.size(), img.type());
 
         // Background subtraction
-        bgS->apply(roi_img, fgmask, update_bg_model ? -1 : 0);
+        bgS->apply(img, fgmask, update_bg_model ? -1 : 0);
         if (smoothMask)
         {
             GaussianBlur(fgmask, fgmask, Size(11, 11), 3.5, 3.5);
@@ -241,26 +287,42 @@ extern "C" {
         findContours(fgmask.clone(), contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
         if (!contours.empty())
         {
-            // Get largest contour
-            int idx_largest_contour = -1;
-            double area_largest_contour = 0.0;
-
+            vector<Rect> tempAreas;
             for (int i = 0; i < contours.size(); ++i)
             {
                 double area = contourArea(contours[i]);
-                if (area_largest_contour < area)
-                {
-                    area_largest_contour = area;
-                    idx_largest_contour = i;
+                if (area > 300) {
+                    // Draw contours
+                    Rect roi = boundingRect(contours[i]);
+                    drawContours(img, contours, i, Scalar(0, 255, 255));
+                    tempAreas.push_back(roi);
+                    /*
+                    if ((roi_rect & roi).area() > 0) {
+                    rectangle(img, roi, Scalar(255, 0, 255), 3);
+                    }
+                    else {
+                    rectangle(img, roi, Scalar(255, 0, 0), 3);
+                    }
+                    */
                 }
             }
 
-            if (area_largest_contour > 200)
-            {
-                // Draw
-                Rect roi = boundingRect(contours[idx_largest_contour]);
-                drawContours(roi_img, contours, idx_largest_contour, Scalar(0, 0, 255));
-                rectangle(roi_img, roi, Scalar(255, 0, 0), 3);
+            vector <Rect> mergedAreas = mergedRects(tempAreas);
+
+            // Draw area
+            for (int k = 0; k < mergedAreas.size(); k++) {
+                Rect caRoi = mergedAreas[k];
+
+                if (caRoi.area() > maxArea) {
+                    continue;
+                }
+
+                if ((roi_rect & caRoi).area() > 0) {
+                    rectangle(img, caRoi, Scalar(255, 0, 255), 3);
+                }
+                else {
+                    rectangle(img, caRoi, Scalar(0, 0, 255), 3);
+                }
             }
         }
 
@@ -277,7 +339,6 @@ extern "C" {
 
         resize(img, frame, Size(cols, rows), INTER_LINEAR);
         img.release();
-        roi_img.release();
     }
 
     JNIEXPORT void JNICALL Java_com_fuhu_galileocv_MotionDetector_findFeatures(
@@ -312,34 +373,40 @@ extern "C" {
         }
     }
 
-    JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_detect(JNIEnv*, jobject, jlong addrRgba, jlong addrMotion) {
+    JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_detect(
+            JNIEnv *jenv, jobject, jlong addrRgba, jint sourceWidth, jint sourceHeight,
+            jint roiX, jint roiY, jint roiWidth, jint roiHeight) {
+
         Mat& mRgb = *(Mat*)addrRgba;
-        Mat& mMotion  = *(Mat*)addrMotion;
-
-        double scale=0.5;
-        int rows = mRgb.rows;
-        int cols = mRgb.cols;
-
-        int left = cols / 4;;
-        int top = rows / 4;
-        int width = cols - (left * 2);
-        int height = rows - (top * 2);
+//        jclass roiRectClass = jenv->GetObjectClass(roiRect);
 
         if (mRgb.empty()) {
             return;
         }
 
-//        Size dsize = Size(cols*scale,rows*scale);
+//        if (roiRectClass == NULL) {
+//            LOGE("GetObjectClass failed\n");
+//            return;
+//        }
 
-//        update_mhi(mRgb, mMotion, 30);
-        bgDetect(mRgb, mMotion);
+        // Get the source frame size.
+        Size sourceSize = Size(sourceWidth, sourceHeight);
+        LOGD("JNI Source size: (%d, %d)\n", sourceSize.width, sourceSize.height);
 
-//        rectangle(mRgb,
-//                  Point(left, top),
-//                  Point(left + width, top + height),
-//                  Scalar(255, 0, 0, 255),
-//                  2
-//        );
+        // Get the ROI.
+//        jfieldID roiXFieldID = jenv->GetFieldID(roiRectClass, "x", "I");
+//        jfieldID roiYFieldID = jenv->GetFieldID(roiRectClass, "y", "I");
+//        jfieldID roiWidthFieldID = jenv->GetFieldID(roiRectClass, "width", "I");
+//        jfieldID roiHeightFieldID = jenv->GetFieldID(roiRectClass, "height", "I");
+//        jint x = jenv->GetIntField(roiRectClass, roiXFieldID);
+//        jint y = jenv->GetIntField(roiRectClass, roiYFieldID);
+//        jint width = jenv->GetIntField(roiRectClass, roiWidthFieldID);
+//        jint height = jenv->GetIntField(roiRectClass, roiHeightFieldID);
+
+        Rect roi = Rect(roiX, roiY, roiWidth, roiHeight);
+        LOGD("JNI ROI x: %d y: %d width: %d height: %d)\n", roi.x, roi.y, roi.width, roi.height);
+
+        bgDetect(mRgb, sourceSize, roi);
     }
 
     JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_objectTracking(
@@ -352,6 +419,6 @@ extern "C" {
 
         LOGD("type: %s index %d", cType, index);
 //        hogDetect(mRgb, mMotion);
-        bgDetect(mRgb, mMotion);
+//        bgDetect(mRgb, mMotion);
     }
 }
