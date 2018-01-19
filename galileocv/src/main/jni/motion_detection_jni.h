@@ -12,11 +12,14 @@ JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_findFeatures(
         JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
 
 JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_detect(
-        JNIEnv* jenv, jobject, jlong addrRgba, jint sourceWidth, jint sourceHeight,
-        jint roiX, jint roiY, jint roiWidth, jint roiHeight);
+        JNIEnv* jenv, jobject, jint index, jlong addrRgba, jobject sizeObject, jobject rectObject,
+        jobject jCallback);
 
 JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_objectTracking(
         JNIEnv* jenv, jobject, jlong addrRgba, jlong addrMotion, jstring typeString, jint index);
+
+JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_testJNI(
+        JNIEnv* jenv, jobject, jobject rectObject);
 
 #ifdef __cplusplus
 }

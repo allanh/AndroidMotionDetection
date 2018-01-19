@@ -30,6 +30,7 @@ android {
 
 dependencies {
     compile fileTree(dir: "$buildDir/native-libs", include: 'native-libs.jar')
+    //compile(name: 'openCVLibrary331', ext: 'aar')
     compile project(':openCVLibrary331dev')
 }
 

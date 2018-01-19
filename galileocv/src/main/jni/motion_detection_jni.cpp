@@ -22,7 +22,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <android/log.h>
-
+#include <pthread.h>
 
 using namespace cv;
 using namespace cv::motempl;
@@ -37,123 +37,19 @@ using namespace std;
 #define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,LOG_TAG ,__VA_ARGS__)
 #endif
 
-#define SSTR( x ) static_cast< std::ostringstream & >( \
-        ( std::ostringstream() << std::dec << x ) ).str()
-
 extern "C" {
-    // various tracking parameters (in seconds)
-    float MHI_DURATION = 0.05;
-    float MAX_TIME_DELTA = 12500.0;
-    float MIN_TIME_DELTA = 5;
-
-//    const double MHI_DURATION = 1;
-//    const double MAX_TIME_DELTA = 0.5;
-//    const double MIN_TIME_DELTA = 0.05;
     // number of cyclic frame buffer used for motion detection
     // (should, probably, depend on FPS)
     const int N = 4;
+    const int INSIDE = 0;
+    const int OVERLAY = 1;
+    const int OUTSIDE = 2;
+    const int MAX_AREA = 800;
 
     // ring image buffer
     vector<Mat> buf(N);
-    int last=0;
-
-    Mat mhi; // MHI
     HOGDescriptor hog;
-
-    Ptr<BackgroundSubtractor> bgS = createBackgroundSubtractorMOG2();
-
-    // parameters:
-    //  img - input video frame
-    //  dst - resultant motion picture
-    //  args - optional parameters
-    void  update_mhi( const Mat& img, Mat& dst, int diff_threshold )
-    {
-        double timestamp = (double)clock()/CLOCKS_PER_SEC; // get current time in seconds
-        int idx1 = last, idx2;
-        Mat tmp, silh, orient, mask, segmask;
-
-        cvtColor( img, buf[last], CV_BGR2GRAY ); // convert frame to grayscale
-
-        idx2 = (last + 1) % N; // index of (last - (N-1))th frame
-        last = idx2;
-
-        if( buf[idx1].size() != buf[idx2].size() )
-            silh = Mat::ones(img.size(), CV_8U)*255;
-        else
-            absdiff(buf[idx1], buf[idx2], silh); // get difference between frames
-
-        threshold( silh, silh, diff_threshold, 1, CV_THRESH_BINARY ); // and threshold it
-        if( mhi.empty() )
-            mhi = Mat::zeros(silh.size(), CV_32F);
-        updateMotionHistory( silh, mhi, timestamp, MHI_DURATION ); // update MHI
-
-        // convert MHI to blue 8u image
-        mhi.convertTo(mask, CV_8U, 255./MHI_DURATION,
-                      (MHI_DURATION - timestamp)*255./MHI_DURATION);
-        tmp = Mat::zeros(mask.size(), CV_8UC3);
-        insertChannel(mask, tmp, 0);
-
-        // calculate motion gradient orientation and valid orientation mask
-        calcMotionGradient( mhi, mask, orient, MAX_TIME_DELTA, MIN_TIME_DELTA, 3 );
-
-        // segment motion: get sequence of motion components
-        // segmask is marked motion components map. It is not used further
-        vector<Rect> brects;
-        segmentMotion(mhi, segmask, brects, timestamp, MAX_TIME_DELTA );
-
-        LOGD("brects size: %d", brects.size());
-
-        // iterate through the motion components,
-        // One more iteration (i == -1) corresponds to the whole image (global motion)
-        for( int i = -1; i < (int)brects.size(); i++ ) {
-            Rect roi; Scalar color; double magnitude;
-            Mat maski = mask;
-            if( i < 0 ) { // case of the whole image
-                roi = Rect(0, 0, img.cols, img.rows);
-                color = Scalar::all(255);
-                magnitude = 100;
-            }
-            else { // i-th motion component
-                roi = brects[i];
-
-                if (roi.area() < 3000) { // reject very small components
-                    continue;
-                } else {
-                    color = Scalar(0, 0, 255);
-                    magnitude = 30;
-                    maski = mask(roi);
-                    LOGD("roi.area(): %d", roi.area());
-
-                    rectangle(img, roi.tl(), roi.br(), Scalar(0, 255, 0), 2);
-                }
-            }
-
-
-
-//            // calculate orientation
-//            double angle = calcGlobalOrientation( orient(roi), maski, mhi(roi), timestamp, MHI_DURATION);
-//            angle = 360.0 - angle;  // adjust for images with top-left origin
-//
-//            int count = norm( silh, NORM_L1 ); // calculate number of points within silhouette ROI
-//            // check for the case of little motion
-//            if( count < roi.area() * 0.05 )
-//                continue;
-//
-//            // draw a clock with arrow indicating the direction
-//            Point center( roi.x + roi.width/2, roi.y + roi.height/2 );
-//            circle( img, center, cvRound(magnitude*1.2), color, 3, CV_AA, 0 );
-//            line( img, center, Point( cvRound( center.x + magnitude*cos(angle*CV_PI/180)),
-//                                      cvRound( center.y - magnitude*sin(angle*CV_PI/180))), color, 3, CV_AA, 0 );
-
-            maski.release();
-        }
-
-        tmp.release();
-        silh.release();
-        orient.release();
-        mask.release();
-        segmask.release();
-    }
+    Ptr<BackgroundSubtractor> bgS = createBackgroundSubtractorMOG2(500, 25, false);
 
     void hogDetect(Mat& frame, Mat& output) {//        }
 //        if (frame.cols > 800) {
@@ -166,7 +62,7 @@ extern "C" {
         // Find contours
         vector<vector<Point> > contours;
         findContours( output, contours, RETR_LIST, CHAIN_APPROX_SIMPLE );
-        LOGD("countours size: %d", contours.size());
+        LOGD("countours size: %u", contours.size());
 
         for ( size_t i = 0; i < contours.size(); i++)
         {
@@ -214,8 +110,9 @@ extern "C" {
     }
 
     vector <Rect> mergedRects(vector<Rect> rects) {
+        LOGD("mergeRects");
         vector <Rect> mergedRects = rects;
-        bool foundIntersection = false;
+        bool foundIntersection;
 
         do {
             foundIntersection = false;
@@ -231,12 +128,32 @@ extern "C" {
                 mergedRects[i] = current;
             }
         } while (foundIntersection);
-
+        LOGD("merged rect size: %u\n", mergedRects.size());
         return mergedRects;
     }
 
-
     // Background segmentation
+    JavaVM *jvm;
+    struct thread_data {
+        int index;
+        Mat& frame;
+        Size sourceSize;
+        Rect roiRect;
+
+        thread_data(Mat& rgb) : frame(rgb) {}
+    };
+
+    struct DetectedData {
+        int type;
+        Rect rect;
+
+        DetectedData() {}
+
+        DetectedData(int detectedType, Rect detectedRect) {
+            type = detectedType;
+            rect = detectedRect;
+        }
+    };
 
     bool update_bg_model = true;
     bool smoothMask = true;
@@ -246,33 +163,91 @@ extern "C" {
     Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
     //Rect roi_rect(0, 0, 300, 300); // x,y,w,h
 
-    void bgDetect(Mat& frame, Size sourceSize, Rect originRoiRect) {
-        int rows = frame.rows;
-        int cols = frame.cols;
-        double newFrameHeight = 640 * frame.rows / frame.cols;
-        double sourceWidthScalar = 640 / (double)sourceSize.width;
-        double sourceHeightScalar = newFrameHeight / sourceSize.height;
-        LOGD("newFrameHeight: %lf, widthScalar: %lf, heightScalar: %lf\n",
-             newFrameHeight, sourceWidthScalar, sourceHeightScalar);
+    vector<DetectedData> getDetectedData(vector<vector<Point> > contours, Rect roi_rect) {
+        LOGD("contours size: %u\n", contours.size());
+        vector<DetectedData> detectedDatas;
+        vector<Rect> tempAreas;
 
-        Rect roi_rect(originRoiRect.x * sourceWidthScalar,
-                      originRoiRect.y * sourceHeightScalar,
-                      originRoiRect.width * sourceWidthScalar,
-                      originRoiRect.height * sourceHeightScalar);
+        for (int i = 0; i < contours.size(); ++i)
+        {
+            double area = contourArea(contours[i]);
+            LOGD("area: %lf\n", area);
+            if (area > MAX_AREA) {
+                // Draw contours
+                Rect roi = boundingRect(contours[i]);
+                drawContours(img, contours, i, Scalar(0, 255, 255));
+                tempAreas.push_back(roi);
+            }
+        }
+
+        LOGD("temp area size: %u\n", tempAreas.size());
+        vector<Rect> mergedAreas = mergedRects(tempAreas);
+//        vector<Rect> mergedAreas = tempAreas;
+
+        LOGD("Draw area");
+        // Draw area
+        for (int k = 0; k < mergedAreas.size(); k++) {
+            DetectedData data;
+            Rect caRoi = mergedAreas[k];
+
+            if (caRoi.area() > maxArea) {
+                continue;
+            }
+
+            Rect rectsIntersection = roi_rect & caRoi;
+            LOGD("rectsIntersection area: %d\n", rectsIntersection.area());
+            if (rectsIntersection.area() == 0) {
+                LOGD("OUTSIDE\n");
+                data = DetectedData(OUTSIDE, caRoi);
+                rectangle(img, caRoi, Scalar(255, 0, 0), 3);
+            } else if (rectsIntersection.area() == caRoi.area()) {
+                LOGD("INSIDE\n");
+                data = DetectedData(INSIDE, caRoi);
+                rectangle(img, caRoi, Scalar(0, 0, 255), 3);
+            } else {
+                LOGD("OVERLAY\n");
+                data = DetectedData(OVERLAY, caRoi);
+                rectangle(img, caRoi, Scalar(255, 0, 255), 3);
+            }
+            detectedDatas.push_back(data);
+        }
+
+        return detectedDatas;
+    }
+
+    //void * bgDetect(void * threadData) {
+    void bgDetect(int index, Mat& frame, thread_data *pData, jobject callback) {
+        LOGD("bgDetect");
+//        struct thread_data *pData = (struct thread_data *) threadData;
+        vector<vector<Point> > contours;
+        vector<DetectedData> detected_data;
+        JNIEnv *env;
+
+        int rows = pData->frame.rows;
+        int cols = pData->frame.cols;
+        bool mNeedDetach;
+        double newFrameHeight = 640 * pData->frame.rows / pData->frame.cols;
+        double sourceWidthScalar = 640 / (double)pData->sourceSize.width;
+        double sourceHeightScalar = newFrameHeight / pData->sourceSize.height;
+        LOGD("index: %d newFrameHeight: %lf, widthScalar: %lf, heightScalar: %lf\n",
+             pData->index, newFrameHeight, sourceWidthScalar, sourceHeightScalar);
+
+        Rect roi_rect((int)(pData->roiRect.x * sourceWidthScalar),
+                      (int)(pData->roiRect.y * sourceHeightScalar),
+                      (int)(pData->roiRect.width * sourceWidthScalar),
+                      (int)(pData->roiRect.height * sourceHeightScalar));
 
         LOGD("JNI resized rect x: %d y: %d width: %d height: %d)\n",
              roi_rect.x, roi_rect.y, roi_rect.width, roi_rect.height);
         LOGI("frame width: %d height: %d", cols, rows);
 
-        resize(frame, img, Size(640, newFrameHeight), INTER_LINEAR);
+        resize(pData->frame, img, Size(640, (int)newFrameHeight), INTER_LINEAR);
         LOGD("resized img width: %d height: %d", img.cols, img.rows);
         maxArea = img.rows * img.cols * 9 / 10;
 
-//        if (fgimg.empty())
-//            fgimg.create(img.size(), img.type());
-
         // Background subtraction
         bgS->apply(img, fgmask, update_bg_model ? -1 : 0);
+
         if (smoothMask)
         {
             GaussianBlur(fgmask, fgmask, Size(11, 11), 3.5, 3.5);
@@ -283,62 +258,94 @@ extern "C" {
         morphologyEx(fgmask, fgmask, MORPH_OPEN, kernel);
 
         // Find contours
-        vector<vector<Point> > contours;
         findContours(fgmask.clone(), contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+        LOGD("Contours size: %u\n", contours.size());
         if (!contours.empty())
         {
-            vector<Rect> tempAreas;
-            for (int i = 0; i < contours.size(); ++i)
-            {
-                double area = contourArea(contours[i]);
-                if (area > 300) {
-                    // Draw contours
-                    Rect roi = boundingRect(contours[i]);
-                    drawContours(img, contours, i, Scalar(0, 255, 255));
-                    tempAreas.push_back(roi);
-                    /*
-                    if ((roi_rect & roi).area() > 0) {
-                    rectangle(img, roi, Scalar(255, 0, 255), 3);
-                    }
-                    else {
-                    rectangle(img, roi, Scalar(255, 0, 0), 3);
-                    }
-                    */
-                }
-            }
-
-            vector <Rect> mergedAreas = mergedRects(tempAreas);
-
-            // Draw area
-            for (int k = 0; k < mergedAreas.size(); k++) {
-                Rect caRoi = mergedAreas[k];
-
-                if (caRoi.area() > maxArea) {
-                    continue;
-                }
-
-                if ((roi_rect & caRoi).area() > 0) {
-                    rectangle(img, caRoi, Scalar(255, 0, 255), 3);
-                }
-                else {
-                    rectangle(img, caRoi, Scalar(0, 0, 255), 3);
-                }
-            }
+            detected_data = getDetectedData(contours, roi_rect);
         }
 
-//        fgimg = Scalar::all(0);
-//        roi_img.copyTo(fgimg, fgmask);
-
-//        Mat bgimg;
-//        bgS->getBackgroundImage(bgimg);
-
-        //size_str << "width: " << img0.cols << " height: " << img0.rows;
-        //putText(img, size_str.str(), Point(70, 70), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 0, 0), 2, 8, false);
-
         rectangle(img, roi_rect.tl(), roi_rect.br(), cv::Scalar(0, 255, 0), 2);
+        resize(img, pData->frame, Size(cols, rows), INTER_LINEAR);
 
-        resize(img, frame, Size(cols, rows), INTER_LINEAR);
+        LOGD("Release");
         img.release();
+
+        // Send result
+        int getEnvStat = jvm->GetEnv((void **) &env, JNI_VERSION_1_6);
+        LOGD("getEnvStat: %d\n", getEnvStat);
+        if (getEnvStat == JNI_EDETACHED) {
+            if (jvm->AttachCurrentThread(&env, NULL) != 0) {
+                return;
+            }
+            mNeedDetach = JNI_TRUE;
+        }
+
+        LOGD("mNeedDetach: %d\n", mNeedDetach);
+        if (callback == NULL) {
+            LOGE("Callbcak is null.\n");
+            return;
+        }
+
+        jclass cls_ArrayList = env->FindClass("java/util/ArrayList");
+        jclass cls_data = env->FindClass("com/fuhu/galileocv/DetectedData");
+        jclass cls_callback = env->GetObjectClass(callback);
+        if(cls_ArrayList == NULL || cls_data == NULL || cls_callback == NULL)
+        {
+            LOGE("cls_ArrayList or cls_data is null \n");
+            return;
+        }
+
+        // Get the ArrayList reference.
+        jmethodID construct = env->GetMethodID(cls_ArrayList, "<init>", "()V");
+        jobject obj_ArrayList = env->NewObject(cls_ArrayList, construct, "");
+        jmethodID arrayList_add = env->GetMethodID(cls_ArrayList, "add", "(Ljava/lang/Object;)Z");
+
+        LOGD("Find ArrayList\n");
+        // Get the DetectedData reference.
+        jmethodID data_costruct = env->GetMethodID(cls_data,
+                                                           "<init>", "(IIIII)V");
+        for (int i = 0; i < detected_data.size(); i++) {
+            DetectedData data = detected_data[i];
+            jobject obj_data = env->NewObject(cls_data, data_costruct, data.type,
+                                                      data.rect.x, data.rect.y,
+                                                      data.rect.width, data.rect.height);
+            env->CallBooleanMethod(obj_ArrayList, arrayList_add, obj_data);
+        }
+        LOGD("Add data to list\n");
+
+        // Get the Callback reference.
+        jmethodID callback_method = env->GetMethodID(
+                cls_callback, "onMotionDetected", "(Ljava/util/ArrayList;)V");
+        env->CallVoidMethod(callback, callback_method, obj_ArrayList);
+
+        /*
+
+        jclass javaClass = env->GetObjectClass(callback);
+        if (javaClass == 0) {
+            LOGD("Unable to find class");
+            jvm->DetachCurrentThread();
+            return NULL;
+        }
+
+
+        if (javaCallbackId == NULL) {
+            LOGD("Unable to find method:onProgressCallBack");
+            return NULL;
+        }
+        //执行回调
+*/
+//        if(mNeedDetach) {
+//            jvm->DetachCurrentThread();
+//        }
+
+
+        LOGD("Release env");
+        env->DeleteLocalRef(cls_ArrayList);
+        env->DeleteLocalRef(cls_data);
+        env->DeleteLocalRef(cls_callback);
+        env = NULL;
+//        pthread_exit(NULL);
     }
 
     JNIEXPORT void JNICALL Java_com_fuhu_galileocv_MotionDetector_findFeatures(
@@ -350,7 +357,7 @@ extern "C" {
 
         Ptr<FeatureDetector> detector = FastFeatureDetector::create(50);
         detector->detect(mGr, v);
-        LOGD("vector size: %d", v.size());
+        LOGD("vector size: %u", v.size());
 
         int rows = mRgb.rows;
         int cols = mRgb.cols;
@@ -369,44 +376,64 @@ extern "C" {
         for( unsigned int i = 0; i < v.size(); i++ )
         {
             const KeyPoint& kp = v[i];
-            circle(mRgb, Point(kp.pt.x, kp.pt.y), 10, Scalar(255,0,0,255));
+            circle(mRgb, Point((int)kp.pt.x, (int)kp.pt.y), 10, Scalar(255,0,0,255));
         }
     }
 
     JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_detect(
-            JNIEnv *jenv, jobject, jlong addrRgba, jint sourceWidth, jint sourceHeight,
-            jint roiX, jint roiY, jint roiWidth, jint roiHeight) {
+            JNIEnv *jenv, jobject, jint index, jlong addrRgba, jobject sizeObject,
+            jobject rectObject, jobject jCallback) {
 
         Mat& mRgb = *(Mat*)addrRgba;
-//        jclass roiRectClass = jenv->GetObjectClass(roiRect);
+        jclass sizeClass = jenv->GetObjectClass(sizeObject);
+        jclass roiRectClass = jenv->GetObjectClass(rectObject);
 
         if (mRgb.empty()) {
+            LOGE("Rgba is empty.");
             return;
         }
 
-//        if (roiRectClass == NULL) {
-//            LOGE("GetObjectClass failed\n");
-//            return;
-//        }
+        if (sizeClass == NULL || roiRectClass == NULL) {
+            LOGE("GetObjectClass failed\n");
+            return;
+        }
 
-        // Get the source frame size.
-        Size sourceSize = Size(sourceWidth, sourceHeight);
-        LOGD("JNI Source size: (%d, %d)\n", sourceSize.width, sourceSize.height);
+        // Cache JavaVM here
+        jenv->GetJavaVM(&jvm);
+        //callback = jenv->NewGlobalRef(jCallback);
+        LOGD("index: %d\n", index);
+
+        thread_data data = thread_data(mRgb);
+        data.index = index;
+        data.frame = mRgb;
+
+        // Get the frame size.
+        jfieldID widthFieldID = jenv->GetFieldID(sizeClass, "width", "D");
+        jfieldID heightFieldID = jenv->GetFieldID(sizeClass, "height", "D");
+        jdouble width = jenv->GetDoubleField(sizeObject, widthFieldID);
+        jdouble height = jenv->GetDoubleField(sizeObject, heightFieldID);
+
+        data.sourceSize = Size((int)width, (int)height);
+        LOGD("JNI Source size: (%d, %d)\n", data.sourceSize.width, data.sourceSize.height);
 
         // Get the ROI.
-//        jfieldID roiXFieldID = jenv->GetFieldID(roiRectClass, "x", "I");
-//        jfieldID roiYFieldID = jenv->GetFieldID(roiRectClass, "y", "I");
-//        jfieldID roiWidthFieldID = jenv->GetFieldID(roiRectClass, "width", "I");
-//        jfieldID roiHeightFieldID = jenv->GetFieldID(roiRectClass, "height", "I");
-//        jint x = jenv->GetIntField(roiRectClass, roiXFieldID);
-//        jint y = jenv->GetIntField(roiRectClass, roiYFieldID);
-//        jint width = jenv->GetIntField(roiRectClass, roiWidthFieldID);
-//        jint height = jenv->GetIntField(roiRectClass, roiHeightFieldID);
+        jfieldID roiXFieldID = jenv->GetFieldID(roiRectClass, "x", "I");
+        jfieldID roiYFieldID = jenv->GetFieldID(roiRectClass, "y", "I");
+        jfieldID roiWidthFieldID = jenv->GetFieldID(roiRectClass, "width", "I");
+        jfieldID roiHeightFieldID = jenv->GetFieldID(roiRectClass, "height", "I");
+        jint roiX = jenv->GetIntField(rectObject, roiXFieldID);
+        jint roiY = jenv->GetIntField(rectObject, roiYFieldID);
+        jint roiWidth = jenv->GetIntField(rectObject, roiWidthFieldID);
+        jint roiHeight = jenv->GetIntField(rectObject, roiHeightFieldID);
 
-        Rect roi = Rect(roiX, roiY, roiWidth, roiHeight);
-        LOGD("JNI ROI x: %d y: %d width: %d height: %d)\n", roi.x, roi.y, roi.width, roi.height);
+        data.roiRect = Rect(roiX, roiY, roiWidth, roiHeight);
+        LOGD("JNI ROI x: %d y: %d width: %d height: %d)\n",
+             data.roiRect.x, data.roiRect.y, data.roiRect.width, data.roiRect.height);
 
-        bgDetect(mRgb, sourceSize, roi);
+        //pthread_create(&pthread, NULL, bgDetect, (void *) &data);
+
+        bgDetect(index, mRgb, &data, jCallback);
+//        pthread_exit(NULL);
     }
 
     JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_objectTracking(
@@ -420,5 +447,23 @@ extern "C" {
         LOGD("type: %s index %d", cType, index);
 //        hogDetect(mRgb, mMotion);
 //        bgDetect(mRgb, mMotion);
+    }
+
+    JNIEXPORT JNICALL void Java_com_fuhu_galileocv_MotionDetector_testJNI(
+            JNIEnv* jenv, jobject, jobject rectObject) {
+
+        jclass roiRectClass = jenv->GetObjectClass(rectObject);
+
+        if (roiRectClass == NULL) {
+            LOGD("GetObjectClass failed\n");
+            return;
+        }
+
+        LOGD("");
+
+        jfieldID roiXFieldID = jenv->GetFieldID(roiRectClass, "x", "I");
+        jint x = jenv->GetIntField(rectObject, roiXFieldID);
+
+//        LOGD("JNI ROI x: %d y: %d width: %d height: %d)\n", roi.x, roi.y, roi.width, roi.height);
     }
 }
