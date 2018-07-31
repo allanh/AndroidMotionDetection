@@ -1,14 +1,14 @@
-Executable : /Users/allanshih/Library/Android/sdk/ndk-bundle/ndk-build
+Executable : /Users/allan.shih/Library/Android/sdk/ndk-bundle/ndk-build
 arguments : 
 NDK_PROJECT_PATH=null
-APP_BUILD_SCRIPT=/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Android.mk
-NDK_APPLICATION_MK=/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Application.mk
+APP_BUILD_SCRIPT=/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Android.mk
+NDK_APPLICATION_MK=/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Application.mk
 APP_ABI=x86_64
 NDK_ALL_ABIS=x86_64
 NDK_DEBUG=1
 APP_PLATFORM=android-21
-NDK_OUT=/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/debug/obj
-NDK_LIBS_OUT=/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/debug/lib
+NDK_OUT=/Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/debug/obj
+NDK_LIBS_OUT=/Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/debug/lib
 APP_SHORT_COMMANDS=false
 LOCAL_SHORT_COMMANDS=false
 -B

@@ -11,7 +11,7 @@ ifdef OPENCV_ANDROID_SDK
     include ${OPENCV_ANDROID_SDK}/sdk/native/jni/OpenCV.mk
   endif
 else
-  include /Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/OpenCV.mk
+  include /Users/allan.shih/Projects/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/OpenCV.mk
 endif
 
 LOCAL_SRC_FILES  := motion_detection_jni.cpp

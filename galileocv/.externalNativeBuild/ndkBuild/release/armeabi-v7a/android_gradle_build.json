@@ -1,29 +1,29 @@
 {
   "buildFiles": [
-    "/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Android.mk",
-    "/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Application.mk"
+    "/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Android.mk",
+    "/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Application.mk"
   ],
   "cleanCommands": [
-    "/Users/allanshih/Library/Android/sdk/ndk-bundle/ndk-build NDK_PROJECT_PATH\u003dnull APP_BUILD_SCRIPT\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Android.mk NDK_APPLICATION_MK\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Application.mk APP_ABI\u003darmeabi-v7a NDK_ALL_ABIS\u003darmeabi-v7a NDK_DEBUG\u003d0 APP_PLATFORM\u003dandroid-21 NDK_OUT\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/release/obj NDK_LIBS_OUT\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/release/lib clean"
+    "/Users/allan.shih/Library/Android/sdk/ndk-bundle/ndk-build NDK_PROJECT_PATH\u003dnull APP_BUILD_SCRIPT\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Android.mk NDK_APPLICATION_MK\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Application.mk APP_ABI\u003darmeabi-v7a NDK_ALL_ABIS\u003darmeabi-v7a NDK_DEBUG\u003d0 APP_PLATFORM\u003dandroid-21 NDK_OUT\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/release/obj NDK_LIBS_OUT\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/release/lib clean"
   ],
   "libraries": {
     "motion_detection-release-armeabi-v7a": {
-      "buildCommand": "/Users/allanshih/Library/Android/sdk/ndk-bundle/ndk-build NDK_PROJECT_PATH\u003dnull APP_BUILD_SCRIPT\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Android.mk NDK_APPLICATION_MK\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/Application.mk APP_ABI\u003darmeabi-v7a NDK_ALL_ABIS\u003darmeabi-v7a NDK_DEBUG\u003d0 APP_PLATFORM\u003dandroid-21 NDK_OUT\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/release/obj NDK_LIBS_OUT\u003d/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/release/lib /Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/release/obj/local/armeabi-v7a/libmotion_detection.so",
+      "buildCommand": "/Users/allan.shih/Library/Android/sdk/ndk-bundle/ndk-build NDK_PROJECT_PATH\u003dnull APP_BUILD_SCRIPT\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Android.mk NDK_APPLICATION_MK\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/Application.mk APP_ABI\u003darmeabi-v7a NDK_ALL_ABIS\u003darmeabi-v7a NDK_DEBUG\u003d0 APP_PLATFORM\u003dandroid-21 NDK_OUT\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/release/obj NDK_LIBS_OUT\u003d/Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/release/lib /Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/release/obj/local/armeabi-v7a/libmotion_detection.so",
       "toolchain": "toolchain-armeabi-v7a",
       "abi": "armeabi-v7a",
       "artifactName": "motion_detection",
       "files": [
         {
-          "src": "/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni/motion_detection_jni.cpp",
-          "flags": "\"-gcc-toolchain\" \"/Users/allanshih/Library/Android/sdk/ndk-bundle/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64\" \"-fpic\" \"-ffunction-sections\" \"-funwind-tables\" \"-fstack-protector-strong\" \"-Wno-invalid-command-line-argument\" \"-Wno-unused-command-line-argument\" \"-no-canonical-prefixes\" \"-fno-integrated-as\" \"-g\" \"-target\" \"armv7-none-linux-androideabi21\" \"-march\u003darmv7-a\" \"-mfloat-abi\u003dsoftfp\" \"-mfpu\u003dvfpv3-d16\" \"-fno-exceptions\" \"-fno-rtti\" \"-mthumb\" \"-Os\" \"-DNDEBUG\" \"-I/Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv\" \"-I/Users/allanshih/Opencv/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include\" \"-I/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni\" \"-I/Users/allanshih/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include\" \"-I/Users/allanshih/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/include\" \"-I/Users/allanshih/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include/backward\" \"-I/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/src/main/jni\" \"-frtti\" \"-fexceptions\" \"-DANDROID\" \"-fPIC\" \"-DANDROID\" \"-fsigned-char\" \"-D__ANDROID_API__\u003d21\" \"-Wa,--noexecstack\" \"-Wformat\" \"-Werror\u003dformat-security\" \"--sysroot\" \"/Users/allanshih/Library/Android/sdk/ndk-bundle/sysroot\" \"-isystem\" \"/Users/allanshih/Library/Android/sdk/ndk-bundle/sysroot/usr/include/arm-linux-androideabi\""
+          "src": "/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni/motion_detection_jni.cpp",
+          "flags": "\"-gcc-toolchain\" \"/Users/allan.shih/Library/Android/sdk/ndk-bundle/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64\" \"-fpic\" \"-ffunction-sections\" \"-funwind-tables\" \"-fstack-protector-strong\" \"-Wno-invalid-command-line-argument\" \"-Wno-unused-command-line-argument\" \"-no-canonical-prefixes\" \"-g\" \"-target\" \"armv7-none-linux-androideabi21\" \"-march\u003darmv7-a\" \"-mfloat-abi\u003dsoftfp\" \"-mfpu\u003dvfpv3-d16\" \"-fno-exceptions\" \"-fno-rtti\" \"-mthumb\" \"-Os\" \"-DNDEBUG\" \"-I/Users/allan.shih/Projects/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include/opencv\" \"-I/Users/allan.shih/Projects/opencv3-android-sdk-with-contrib/OpenCV-android-sdk/sdk/native/jni/include\" \"-I/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni\" \"-I/Users/allan.shih/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include\" \"-I/Users/allan.shih/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/include\" \"-I/Users/allan.shih/Library/Android/sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include/backward\" \"-I/Users/allan.shih/Projects/MotionDetection/galileocv/src/main/jni\" \"-frtti\" \"-fexceptions\" \"-DANDROID\" \"-fPIC\" \"-DANDROID\" \"-fsigned-char\" \"-D__ANDROID_API__\u003d21\" \"-Wa,--noexecstack\" \"-Wformat\" \"-Werror\u003dformat-security\" \"--sysroot\" \"/Users/allan.shih/Library/Android/sdk/ndk-bundle/sysroot\" \"-isystem\" \"/Users/allan.shih/Library/Android/sdk/ndk-bundle/sysroot/usr/include/arm-linux-androideabi\""
         }
       ],
-      "output": "/Users/allanshih/Projects/GalileoDetectionPoc/galileocv/build/intermediates/ndkBuild/release/obj/local/armeabi-v7a/libmotion_detection.so"
+      "output": "/Users/allan.shih/Projects/MotionDetection/galileocv/build/intermediates/ndkBuild/release/obj/local/armeabi-v7a/libmotion_detection.so"
     }
   },
   "toolchains": {
     "toolchain-armeabi-v7a": {
-      "cppCompilerExecutable": "/Users/allanshih/Library/Android/sdk/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++"
+      "cppCompilerExecutable": "/Users/allan.shih/Library/Android/sdk/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++"
     }
   },
   "cFileExtensions": [],
